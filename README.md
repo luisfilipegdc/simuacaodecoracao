@@ -33,6 +33,7 @@ Simulação 3D realista do coração humano para feira de ciências.
 - **Passador de slides** funciona: cada clique em "avançar" conduz a apresentação inteira: normal → 6 etapas do infarto → choque → stent → volta ao normal.
 - Atalhos: `→`/`Espaço`/`PgDn` avançar • `←`/`PgUp` voltar • `1`–`6` etapa • `N` normal • `D` desfibrilar • `S` stent • `A` automático • `M` som • `L` nomes • `E` elétrico • `R` girar • `F` tela cheia • `H` ajuda.
 - **Automático** (botão ⏯ ou tecla `A`): ciclo completo sem parar (repouso → exercício → infarto → choque → stent → recomeça), ótimo para deixar rodando no estande.
+- O painel de texto começa escondido (foco na simulação): só o título da etapa aparece sobre o coração. Botão **ℹ️ Texto** ou tecla `T` mostra as explicações completas; o link `?texto` já abre com elas.
 - Aperte `F` para tela cheia. O som liga no primeiro clique ou tecla.
 
 ## Rodar no computador

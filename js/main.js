@@ -74,7 +74,9 @@ controls.rotateSpeed = 0.8;
 controls.autoRotateSpeed = 1.2;
 
 const toWorld = (v) => heart.root.localToWorld(v.clone());
-const HOME = { pos: new THREE.Vector3(0.6, 0.35, 1).normalize().multiplyScalar(size.y * 1.75), target: new THREE.Vector3(0, -0.05, 0) };
+// alvo um pouco acima do centro: o coração fica mais baixo e sobra espaço para o título
+const HOME_T = new THREE.Vector3(0, 0.3, 0);
+const HOME = { pos: new THREE.Vector3(0.6, 0.35, 1).normalize().multiplyScalar(size.y * 1.8).add(HOME_T), target: HOME_T.clone() };
 camera.position.copy(HOME.pos);
 controls.target.copy(HOME.target);
 
@@ -391,6 +393,43 @@ $('btnFull').addEventListener('click', () => {
   else canFS.call(fsEl);
 });
 
+// ---------------------------------------------------------------- título sobre a cena
+// O título da etapa aparece grande em cima do coração; o texto longo fica opcional.
+function syncCaption() {
+  const attack = ui.mode === 'attack';
+  const hr = +$('hrRange').value;
+  $('capNum').textContent = attack ? 'Etapa ' + $('stageNum').textContent : '';
+  const tag = $('capTag');
+  if (attack) { tag.textContent = $('stageTag').textContent; tag.className = $('stageTag').className; }
+  else {
+    tag.textContent = hr < 60 ? '😴 Sono' : hr > 100 ? '🏃 Exercício' : '🙂 Repouso';
+    tag.className = 'tag ' + (hr > 100 ? 'warn' : 'ok');
+  }
+  const title = attack ? $('stageTitle').textContent : 'Batimento normal';
+  if ($('capTitle').textContent !== title) {
+    $('capTitle').textContent = title;
+    const c = $('caption'); c.style.animation = 'none'; void c.offsetWidth; c.style.animation = '';
+  }
+}
+new MutationObserver(syncCaption).observe($('info'), { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class'] });
+new MutationObserver(syncCaption).observe(app, { attributes: true, attributeFilter: ['data-mode'] });
+$('hrRange').addEventListener('input', syncCaption);
+
+function setInfo(show) {
+  ui.info = show;
+  document.body.classList.toggle('noinfo', !show);
+  $('btnInfo').classList.toggle('on', show);
+  try { localStorage.setItem('coracao-texto', show ? '1' : '0'); } catch (e) { /* sem armazenamento */ }
+  requestAnimationFrame(resize);
+}
+$('btnInfo').addEventListener('click', () => setInfo(!ui.info));
+{
+  let saved = null;
+  try { saved = localStorage.getItem('coracao-texto'); } catch (e) { /* sem armazenamento */ }
+  const q = new URLSearchParams(location.search);
+  setInfo(q.has('texto') ? true : saved === '1');
+}
+
 // ---------------------------------------------------------------- modo projeção
 function setProjection(on) {
   ui.proj = on;
@@ -459,6 +498,7 @@ window.addEventListener('keydown', (e) => {
     case 'f': click('btnFull'); break;
     case 'p': setProjection(!ui.proj); break;
     case 'h': case '?': $('keys').classList.toggle('show'); break;
+    case 't': setInfo(!ui.info); break;
     case 'escape': $('keys').classList.remove('show'); break;
     default: handled = false;
   }
@@ -783,6 +823,7 @@ function updateHud(vf, c) {
 
 // ---------------------------------------------------------------- início
 setMode('normal');
+syncCaption();
 requestAnimationFrame((t) => {
   last = t;
   requestAnimationFrame(frame);
