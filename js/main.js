@@ -214,6 +214,7 @@ function setMode(mode) {
   app.dataset.mode = mode;
   document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.mode === mode));
   ui.auto = false; $('btnAuto').classList.remove('on');
+  audio.flatline(false); audio.hush();
   if (mode === 'normal') {
     shock = null;
     applyStage({ id: 'normal', set: { hr: +$('hrRange').value, plaque: 0.15 } }, false);
@@ -235,7 +236,22 @@ function applyStage(stage, render = true) {
     tag.textContent = stage.tag; tag.className = 'tag ' + (stage.tagClass || '');
   }
   if (stage.set.cam) flyTo(stage.set.cam);
+  if (render) stageSfx(stage.id);
   updateButtons();
+}
+
+// efeito sonoro de cada etapa
+function stageSfx(id) {
+  alarmT = 1.5;
+  switch (id) {
+    case 'saudavel': audio.whoosh(false); break;
+    case 'placa': audio.plaque(); break;
+    case 'trombo': audio.clot(); break;
+    case 'isquemia': audio.tension(3.5); break;
+    case 'infarto': audio.tension(4.5); break;
+    case 'fv': audio.tension(2.5); alarmT = 0.3; break;
+    case 'stent': audio.stent(); break;
+  }
 }
 
 function goStage(i) {
@@ -270,10 +286,10 @@ function updateButtons() {
 
 function defibrillate() {
   if (ui.stage.id !== 'fv' || shock) return;
-  shock = { t: 0, phase: 'charge' };
+  shock = { t: 0, phase: 'analyze' };
   updateButtons();
-  showShockMsg('⚡ Carregando 200 J…');
-  audio.charge(1.3);
+  showShockMsg('🔍 Analisando o ritmo…');
+  audio.say('Analisando o ritmo cardíaco. Não toque no paciente.');
 }
 
 function doStent() {
@@ -309,7 +325,7 @@ $('btnPrev').addEventListener('click', () => {
   ui.auto = false; $('btnAuto').classList.remove('on');
   if (!STAGES.includes(ui.stage)) goStage(ui.stageIdx); else goStage(ui.stageIdx - 1);
 });
-$('btnRestart').addEventListener('click', () => { shock = null; goStage(0); });
+$('btnRestart').addEventListener('click', () => { shock = null; audio.flatline(false); audio.hush(); goStage(0); });
 $('btnDefib').addEventListener('click', defibrillate);
 $('btnStent').addEventListener('click', doStent);
 $('btnAuto').addEventListener('click', (e) => {
@@ -321,14 +337,39 @@ const toggle = (id, key, fn) => $(id).addEventListener('click', (e) => {
   ui[key] = !ui[key]; e.currentTarget.classList.toggle('on', ui[key]); fn && fn(ui[key]);
 });
 toggle('btnElec', 'showElec');
-toggle('btnFlow', 'showFlow', (v) => { pointCloud.visible = v; });
+toggle('btnFlow', 'showFlow', (v) => { pointCloud.visible = v; audio.flowOn = v; });
 toggle('btnLabels', 'showLabels', (v) => stageEl.classList.toggle('labels-off', !v));
 $('btnRotate').addEventListener('click', (e) => { controls.autoRotate = !controls.autoRotate; e.currentTarget.classList.toggle('on', controls.autoRotate); });
 $('btnReset').addEventListener('click', () => flyTo('front'));
-$('btnSound').addEventListener('click', async (e) => {
-  const b = e.currentTarget;
-  if (audio.enabled) { audio.disable(); b.classList.remove('on'); b.firstChild.textContent = '🔇'; }
-  else { await audio.enable(); b.classList.add('on'); b.firstChild.textContent = '🔊'; }
+let soundWanted = true;
+function soundUI() {
+  const b = $('btnSound');
+  b.classList.toggle('on', audio.enabled);
+  b.firstChild.textContent = audio.enabled ? '🔊' : '🔇';
+}
+$('btnSound').addEventListener('click', async () => {
+  soundWanted = !audio.enabled;
+  if (audio.enabled) audio.disable(); else await audio.enable();
+  soundUI();
+});
+// o iPad só libera o som depois de um toque: o primeiro toque em qualquer lugar ativa
+const UNLOCK_EVENTS = ['pointerdown', 'touchend', 'click', 'keydown'];
+const unlock = async (e) => {
+  if (e.target.closest && e.target.closest('#btnSound')) return;
+  if (!soundWanted || audio.enabled) return;
+  try { await audio.enable(); } catch (err) { /* tenta de novo no próximo toque */ }
+  if (audio.ctx && audio.ctx.state === 'running') {
+    UNLOCK_EVENTS.forEach((ev) => window.removeEventListener(ev, unlock, true));
+    $('hint').textContent = 'Arraste para girar • Pinça para zoom';
+  } else {
+    audio.enabled = false;
+  }
+  soundUI();
+};
+UNLOCK_EVENTS.forEach((ev) => window.addEventListener(ev, unlock, true));
+// clique suave nos botões
+document.addEventListener('click', (e) => {
+  if (e.target.closest && e.target.closest('.btn, .tab, .tool') && !e.target.closest('#btnSound')) audio.click();
 });
 const fsEl = document.documentElement;
 const canFS = fsEl.requestFullscreen || fsEl.webkitRequestFullscreen;
@@ -397,12 +438,22 @@ function simStep(dt) {
 
   if (shock) {
     shock.t += dt;
-    if (shock.phase === 'charge' && shock.t > 1.3) {
+    if (shock.phase === 'analyze' && shock.t > 2.8) {
+      shock.phase = 'charge'; shock.t = 0;
+      showShockMsg('⚡ Choque recomendado — carregando 200 J…');
+      audio.say('Choque recomendado. Carregando.');
+      audio.charge(2.2);
+    } else if (shock.phase === 'charge' && shock.t > 2.2) {
       shock.phase = 'clear'; shock.t = 0;
       showShockMsg('Afastem-se! ✋');
-    } else if (shock.phase === 'clear' && shock.t > 0.7) {
+      audio.ready();
+      audio.say('Afastem-se do paciente!', { rate: 1.15, pitch: 1 });
+    } else if (shock.phase === 'clear' && shock.t > 1.8) {
       shock.phase = 'zap'; shock.t = 0;
+      audio.hush();
       audio.shock();
+      setTimeout(() => audio.flatline(true), 150);
+      setTimeout(() => audio.flatline(false), 1250);
       showShockMsg('⚡ CHOQUE!', 900);
       heartUniforms.uFlash.value = 1;
       $('flash').style.transition = 'none'; $('flash').style.opacity = 0.85;
@@ -411,6 +462,8 @@ function simStep(dt) {
     } else if (shock.phase === 'zap' && shock.t > 1.6) {
       shock = null;
       applyStage(AFTER_SHOCK);
+      audio.success();
+      audio.say('Choque aplicado. Ritmo cardíaco recuperado.');
       $('stageNum').textContent = '⚡';
       beatT = 0; cycle = 60 / 100; fired = {};
     }
@@ -436,9 +489,11 @@ function simStep(dt) {
     ecg = ecgSinus(beatT, cycle, { st: S.st, qwave: S.qwave }) + noise;
     const amp = 0.25 + 0.75 * S.contract * (S.sys > 0 ? Math.min(1, S.sys / 120) : 0);
     pl = pleth(beatT, cycle, amp) + noise * 0.3;
-    if (!fired.r && beatT >= 0.162) { fired.r = true; audio.monitorBeep(S.hr > 100); blip(); }
-    if (!fired.s1 && beatT >= 0.19) { fired.s1 = true; audio.s1(); }
-    if (!fired.s2 && beatT >= sysEnd()) { fired.s2 = true; audio.s2(); }
+    const force = Math.min(1.3, (0.55 + 0.45 * S.contract) * (0.85 + S.hr / 480));
+    if (!fired.s4 && beatT >= 0.11 && Math.max(S.necro, S.isch) > 0.45) { fired.s4 = true; audio.s4(Math.max(S.necro, S.isch)); }
+    if (!fired.r && beatT >= 0.162) { fired.r = true; audio.monitorBeep(S.spo2); blip(); }
+    if (!fired.s1 && beatT >= 0.19) { fired.s1 = true; audio.s1(force); }
+    if (!fired.s2 && beatT >= sysEnd()) { fired.s2 = true; audio.s2(force * 0.95); }
   }
   ecgBuf.push(ecg); plBuf.push(pl);
 }
@@ -500,6 +555,7 @@ function frame(now) {
     heartUniforms.uVent.value = c.vent * S.contract;
     heartUniforms.uAtria.value = c.atria;
   }
+  audio.setFlow(vf ? 0.15 + 0.1 * Math.abs(Math.sin(clock * 13)) : heartUniforms.uVent.value * (0.5 + 0.5 * S.contract), vf ? 0.6 : 0);
   heartUniforms.uTime.value = clock;
   heartUniforms.uIsch.value = S.isch;
   heartUniforms.uNecro.value = S.necro;
@@ -587,7 +643,9 @@ function frame(now) {
   // alarme sonoro
   if (TGT.alarm || vf) {
     alarmT -= rdt;
-    if (alarmT <= 0) { audio.alarm(); alarmT = vf ? 1.4 : 4; }
+    if (alarmT <= 0 && !shock) {
+      if (vf) { audio.alarmHigh(); alarmT = 2.4; } else { audio.alarmMedium(); alarmT = 6; }
+    }
   }
 
   // HUD (a ~15 Hz)
