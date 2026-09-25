@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Coração 3D — Batimento e Infarto</title>
+  <meta name="description" content="Simulação 3D realista do coração humano: batimento normal, sistema elétrico e ataque cardíaco (infarto) passo a passo. Projeto de feira de ciências.">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#0b0710">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Coração 3D">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="loading">
+    <div class="beat-logo">❤</div>
+    <p>Preparando o coração…</p>
+  </div>
+
+  <div class="app" id="app" data-mode="normal">
+    <header class="top">
+      <div class="brand">
+        <span class="brand-icon">❤</span>
+        <div>
+          <h1>Coração 3D</h1>
+          <p>Simulação do batimento e do ataque cardíaco</p>
+        </div>
+      </div>
+      <nav class="tabs" role="tablist">
+        <button class="tab active" data-mode="normal" role="tab">💓 Batimento normal</button>
+        <button class="tab" data-mode="attack" role="tab">⚠️ Ataque cardíaco</button>
+      </nav>
+    </header>
+
+    <!-- Painel de informações -->
+    <aside class="panel info" id="info">
+      <section class="normal-only">
+        <h2>Como o coração bate</h2>
+        <ol class="phases" id="phases">
+          <li data-phase="atrial">
+            <b>1. Sístole atrial</b>
+            <span>O nó sinoatrial (marca-passo natural) dispara. Os <b>átrios</b> contraem e terminam de encher os ventrículos.</span>
+          </li>
+          <li data-phase="ventricular">
+            <b>2. Sístole ventricular</b>
+            <span>Os <b>ventrículos</b> contraem e torcem. O sangue sai pela <b>aorta</b> (para o corpo) e pela <b>artéria pulmonar</b> (para os pulmões). As valvas tricúspide e mitral fecham: <i>"TUM"</i>.</span>
+          </li>
+          <li data-phase="diastole">
+            <b>3. Diástole</b>
+            <span>O músculo relaxa e o coração se enche de sangue. As valvas aórtica e pulmonar fecham: <i>"TÁ"</i>. É agora que as <b>coronárias</b> mais irrigam o músculo.</span>
+          </li>
+        </ol>
+        <div class="legend">
+          <div><i class="sw red"></i> Sangue rico em oxigênio</div>
+          <div><i class="sw blue"></i> Sangue pobre em oxigênio</div>
+          <div><i class="sw fat"></i> Gordura do coração (normal)</div>
+          <div><i class="sw glow"></i> Impulso elétrico</div>
+        </div>
+      </section>
+
+      <section class="attack-only">
+        <div class="stage-head">
+          <span class="stage-num" id="stageNum">1/6</span>
+          <span class="tag" id="stageTag">Normal</span>
+        </div>
+        <h2 id="stageTitle">Coração saudável</h2>
+        <div id="stageBody" class="stage-body"></div>
+      </section>
+
+      <div class="fact">
+        <b>Você sabia?</b>
+        <p id="fact"></p>
+      </div>
+    </aside>
+
+    <!-- Cena 3D -->
+    <main class="stage" id="stage">
+      <div class="tools">
+        <button class="tool" id="btnSound" title="Som">🔇<span>Som</span></button>
+        <button class="tool on" id="btnLabels" title="Nomes das partes">🏷️<span>Nomes</span></button>
+        <button class="tool on" id="btnElec" title="Impulso elétrico">⚡<span>Elétrico</span></button>
+        <button class="tool on" id="btnFlow" title="Fluxo nas coronárias">🩸<span>Fluxo</span></button>
+        <button class="tool" id="btnRotate" title="Girar automaticamente">🔄<span>Girar</span></button>
+        <button class="tool" id="btnReset" title="Centralizar">🎯<span>Centro</span></button>
+        <button class="tool" id="btnFull" title="Tela cheia">⛶<span>Tela</span></button>
+      </div>
+      <div class="phase-pill" id="phasePill">Diástole</div>
+      <div class="hint" id="hint">Arraste para girar • Pinça para zoom</div>
+      <div class="flash" id="flash"></div>
+      <div class="shock-msg" id="shockMsg"></div>
+    </main>
+
+    <!-- Monitor -->
+    <aside class="panel monitor">
+      <div class="mon">
+        <div class="mon-row">
+          <div class="trace-wrap">
+            <span class="trace-label ecg">II &nbsp;ECG</span>
+            <canvas id="ecg"></canvas>
+          </div>
+          <div class="vital hr" id="vHr">
+            <span class="v-lbl">FC <small>bpm</small></span>
+            <span class="v-val" id="hrVal">72</span>
+            <span class="heart-blip" id="blip">❤</span>
+          </div>
+        </div>
+        <div class="mon-row">
+          <div class="trace-wrap small">
+            <span class="trace-label pl">PLETH</span>
+            <canvas id="pleth"></canvas>
+          </div>
+          <div class="vital spo2" id="vSpo2">
+            <span class="v-lbl">SpO₂ <small>%</small></span>
+            <span class="v-val" id="spo2Val">98</span>
+          </div>
+        </div>
+        <div class="mon-row foot">
+          <div class="vital bp" id="vBp">
+            <span class="v-lbl">PA <small>mmHg</small></span>
+            <span class="v-val" id="bpVal">120/80</span>
+          </div>
+          <div class="rhythm" id="rhythm">Ritmo sinusal normal</div>
+        </div>
+      </div>
+
+      <div class="artery">
+        <div class="artery-head">🔬 Dentro da artéria coronária DA</div>
+        <canvas id="artery"></canvas>
+      </div>
+    </aside>
+
+    <!-- Controles -->
+    <footer class="controls">
+      <div class="normal-only row">
+        <label class="hr-ctrl">
+          <span>Frequência: <b id="hrSetVal">72</b> bpm</span>
+          <input type="range" id="hrRange" min="40" max="180" value="72">
+        </label>
+        <div class="presets">
+          <button class="btn" data-hr="55">😴 Sono</button>
+          <button class="btn active" data-hr="72">🙂 Repouso</button>
+          <button class="btn" data-hr="150">🏃 Exercício</button>
+        </div>
+        <button class="btn" id="btnSlow">🐢 Câmera lenta</button>
+      </div>
+      <div class="attack-only row">
+        <button class="btn" id="btnPrev">◀ Voltar</button>
+        <div class="dots" id="dots"></div>
+        <button class="btn primary" id="btnNext">Próximo ▶</button>
+        <button class="btn danger" id="btnDefib" disabled>⚡ Desfibrilar</button>
+        <button class="btn good" id="btnStent" disabled>💉 Angioplastia com stent</button>
+        <button class="btn" id="btnAuto">⏯ Automático</button>
+        <button class="btn" id="btnRestart">↺ Reiniciar</button>
+      </div>
+    </footer>
+  </div>
+
+  <p class="disclaimer">Simulação educativa para feira de ciências — não substitui orientação médica. Emergência: 192 (SAMU).</p>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
