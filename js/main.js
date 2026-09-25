@@ -209,14 +209,21 @@ const artery = new ArteryView($('artery'));
 const audio = new HeartAudio();
 
 // ---------------------------------------------------------------- modos e etapas
-function setMode(mode) {
+function setAuto(on) {
+  ui.auto = on; ui.autoT = 0; ui.autoStep = 0;
+  document.querySelectorAll('.auto-btn').forEach((b) => b.classList.toggle('on', on));
+}
+
+function setMode(mode, keepAuto = false) {
   ui.mode = mode;
   app.dataset.mode = mode;
   document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.mode === mode));
-  ui.auto = false; $('btnAuto').classList.remove('on');
+  if (!keepAuto) setAuto(false); else { ui.autoT = 0; ui.autoStep = 0; }
   audio.flatline(false); audio.hush();
   if (mode === 'normal') {
     shock = null;
+    $('shockMsg').classList.remove('show');
+    if (keepAuto) setHR(72);
     applyStage({ id: 'normal', set: { hr: +$('hrRange').value, plaque: 0.15 } }, false);
     flyTo('front');
   } else {
@@ -257,6 +264,7 @@ function stageSfx(id) {
 function goStage(i) {
   i = Math.max(0, Math.min(STAGES.length - 1, i));
   ui.stageIdx = i; ui.autoT = 0;
+  if (shock) { shock = null; audio.flatline(false); audio.hush(); $('shockMsg').classList.remove('show'); }
   // voltando para antes do infarto, "desfaz" o dano rapidamente
   applyStage(STAGES[i]);
   if (i < 4) { S.necro = Math.min(S.necro, TGT.necro); S.qwave = Math.min(S.qwave, TGT.qwave); }
@@ -315,23 +323,24 @@ $('hrRange').addEventListener('input', (e) => {
   TGT.hr = v;
   document.querySelectorAll('.presets .btn').forEach((b) => b.classList.toggle('active', +b.dataset.hr === v));
 });
+function setHR(v) {
+  $('hrRange').value = v;
+  $('hrRange').dispatchEvent(new Event('input'));
+}
 document.querySelectorAll('.presets .btn').forEach((b) => b.addEventListener('click', () => {
   $('hrRange').value = b.dataset.hr;
   $('hrRange').dispatchEvent(new Event('input'));
 }));
 $('btnSlow').addEventListener('click', (e) => { ui.slow = !ui.slow; e.currentTarget.classList.toggle('on', ui.slow); });
-$('btnNext').addEventListener('click', () => { ui.auto = false; $('btnAuto').classList.remove('on'); goStage(ui.stageIdx + 1); });
+$('btnNext').addEventListener('click', () => { setAuto(false); goStage(ui.stageIdx + 1); });
 $('btnPrev').addEventListener('click', () => {
-  ui.auto = false; $('btnAuto').classList.remove('on');
+  setAuto(false);
   if (!STAGES.includes(ui.stage)) goStage(ui.stageIdx); else goStage(ui.stageIdx - 1);
 });
 $('btnRestart').addEventListener('click', () => { shock = null; audio.flatline(false); audio.hush(); goStage(0); });
 $('btnDefib').addEventListener('click', defibrillate);
 $('btnStent').addEventListener('click', doStent);
-$('btnAuto').addEventListener('click', (e) => {
-  ui.auto = !ui.auto; ui.autoT = 0;
-  e.currentTarget.classList.toggle('on', ui.auto);
-});
+document.querySelectorAll('.auto-btn').forEach((b) => b.addEventListener('click', () => setAuto(!ui.auto)));
 
 const toggle = (id, key, fn) => $(id).addEventListener('click', (e) => {
   ui[key] = !ui[key]; e.currentTarget.classList.toggle('on', ui[key]); fn && fn(ui[key]);
@@ -367,6 +376,8 @@ const unlock = async (e) => {
   soundUI();
 };
 UNLOCK_EVENTS.forEach((ev) => window.addEventListener(ev, unlock, true));
+// tira o foco do botão depois do clique, para Espaço/Enter do passador não clicarem de novo
+document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('button'); if (b) b.blur(); });
 // clique suave nos botões
 document.addEventListener('click', (e) => {
   if (e.target.closest && e.target.closest('.btn, .tab, .tool') && !e.target.closest('#btnSound')) audio.click();
@@ -378,6 +389,80 @@ $('btnFull').addEventListener('click', () => {
   const inFS = document.fullscreenElement || document.webkitFullscreenElement;
   if (inFS) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
   else canFS.call(fsEl);
+});
+
+// ---------------------------------------------------------------- modo projeção
+function setProjection(on) {
+  ui.proj = on;
+  document.body.classList.toggle('proj', on);
+  $('btnProj').classList.toggle('on', on);
+  // projetores "lavam" os tons escuros: coração mais claro e linhas mais grossas
+  renderer.toneMappingExposure = on ? 1.1 : 0.85;
+  scene.environmentIntensity = on ? 0.5 : 0.35;
+  ecgTrace.lineW = plTrace.lineW = on ? 3.2 : 2;
+  $('keys').classList.toggle('show', on);
+  clearTimeout(setProjection.t);
+  if (on) setProjection.t = setTimeout(() => $('keys').classList.remove('show'), 10000);
+  try { localStorage.setItem('coracao-proj', on ? '1' : '0'); } catch (e) { /* sem armazenamento */ }
+  requestAnimationFrame(resize);
+}
+$('btnProj').addEventListener('click', () => setProjection(!ui.proj));
+{
+  const q = new URLSearchParams(location.search);
+  let saved = null;
+  try { saved = localStorage.getItem('coracao-proj'); } catch (e) { /* sem armazenamento */ }
+  if (q.has('projecao') || q.has('projeção') || q.has('proj')) setProjection(q.get('projecao') !== '0');
+  else if (saved === '1') setProjection(true);
+  if (q.has('auto')) setTimeout(() => setAuto(true), 500);
+}
+
+// "Avançar" com um botão só (passador de slides): conduz a apresentação inteira
+function advance() {
+  if (ui.mode === 'normal') { setMode('attack'); return; }
+  const id = ui.stage.id;
+  if (shock) return;
+  if (id === 'fv') defibrillate();
+  else if (id === 'choque') doStent();
+  else if (id === 'stent') setMode('normal');
+  else goStage(ui.stageIdx + 1);
+}
+function goBack() {
+  if (ui.mode === 'normal') return;
+  if (shock) return;
+  if (!STAGES.includes(ui.stage)) goStage(ui.stageIdx);
+  else if (ui.stageIdx === 0) setMode('normal');
+  else goStage(ui.stageIdx - 1);
+}
+const click = (id) => { const b = $(id); if (b && !b.disabled) b.click(); };
+window.addEventListener('keydown', (e) => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.target.matches && e.target.matches('input, textarea')) {
+    if (e.key !== 'PageDown' && e.key !== 'PageUp') return;
+  }
+  const k = e.key;
+  const stopAuto = () => setAuto(false);
+  let handled = true;
+  if (k === 'ArrowRight' || k === 'PageDown' || k === ' ' || k === 'Enter' || k === 'ArrowDown') { stopAuto(); advance(); }
+  else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'Backspace' || k === 'ArrowUp') { stopAuto(); goBack(); }
+  else if (k >= '1' && k <= '6') { stopAuto(); if (ui.mode !== 'attack') setMode('attack'); goStage(+k - 1); }
+  else switch (k.toLowerCase()) {
+    case 'n': setMode('normal'); break;
+    case 'i': setMode('attack'); break;
+    case 'd': defibrillate(); break;
+    case 's': doStent(); break;
+    case 'a': setAuto(!ui.auto); break;
+    case 'm': click('btnSound'); break;
+    case 'l': click('btnLabels'); break;
+    case 'e': click('btnElec'); break;
+    case 'r': click('btnRotate'); break;
+    case 'c': click('btnReset'); break;
+    case 'f': click('btnFull'); break;
+    case 'p': setProjection(!ui.proj); break;
+    case 'h': case '?': $('keys').classList.toggle('show'); break;
+    case 'escape': $('keys').classList.remove('show'); break;
+    default: handled = false;
+  }
+  if (handled) e.preventDefault();
 });
 
 function hideHint() { $('hint').style.opacity = 0; }
@@ -517,7 +602,8 @@ let lastHud = 0;
 
 function frame(now) {
   requestAnimationFrame(frame);
-  let rdt = Math.min(0.1, (now - last) / 1000);
+  const wallDt = Math.min(1, Math.max(0, (now - last) / 1000)); // relógio real (para o automático)
+  let rdt = Math.min(0.1, wallDt);
   last = now;
 
   // ajusta a qualidade automaticamente se o aparelho estiver lento
@@ -627,15 +713,21 @@ function frame(now) {
   }
 
   // automático (modo apresentação)
-  if (ui.mode === 'attack' && ui.auto) {
-    ui.autoT += rdt;
+  // Ciclo completo: normal (repouso → exercício → repouso) → infarto → choque → stent → recomeça
+  if (ui.auto && ui.mode === 'normal') {
+    ui.autoT += wallDt;
+    const steps = [[12, () => { setHR(150); flyTo('front'); }], [22, () => setHR(72)], [30, () => setMode('attack', true)]];
+    const st = steps[ui.autoStep || 0];
+    if (st && ui.autoT > st[0]) { ui.autoStep = (ui.autoStep || 0) + 1; st[1](); }
+  } else if (ui.auto && ui.mode === 'attack') {
+    ui.autoT += wallDt;
     const id = ui.stage.id;
     const wait = id === 'fv' ? 7 : id === 'choque' ? 8 : id === 'stent' ? 18 : 13;
     if (ui.autoT > wait && !shock) {
       ui.autoT = 0;
       if (id === 'fv') defibrillate();
       else if (id === 'choque') doStent();
-      else if (id === 'stent') goStage(0);
+      else if (id === 'stent') setMode('normal', true);
       else goStage(ui.stageIdx + 1);
     }
   }

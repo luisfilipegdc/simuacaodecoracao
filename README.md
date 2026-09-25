@@ -1,5 +1,7 @@
 # ❤ Coração 3D — Batimento e Ataque Cardíaco
 
+**Site:** https://simuacaodecoracao.vercel.app
+
 Simulação 3D realista do coração humano para feira de ciências.
 
 - **Batimento normal**: sístole atrial, sístole ventricular (com torção) e diástole; impulso elétrico percorrendo o coração; sangue fluindo nas coronárias; ECG, oximetria e sons "tum-tá".
@@ -18,6 +20,20 @@ Simulação 3D realista do coração humano para feira de ciências.
 - O som liga sozinho no **primeiro toque** na tela (exigência do iPad). Para silenciar, toque em 🔊. Desative o modo silencioso do iPad e aumente o volume.
 - Numa feira barulhenta, uma caixinha de som Bluetooth ajuda muito.
 - Use **⏯ Automático** no modo "Ataque cardíaco" para a apresentação rodar sozinha.
+
+## Links prontos
+| Link | Para quê |
+|---|---|
+| https://simuacaodecoracao.vercel.app | Uso normal (celular, iPad) |
+| https://simuacaodecoracao.vercel.app/?projecao | Projetor/TV: letras grandes e alto contraste |
+| https://simuacaodecoracao.vercel.app/?projecao&auto | Projetor rodando sozinho, em ciclo contínuo |
+
+## Apresentar no projetor
+- Botão **📽️ Projeção** (ou tecla **P**): letras e números grandes, fundo preto e coração mais claro (o projetor "lava" as cores escuras). Fica salvo para a próxima vez.
+- **Passador de slides** funciona: cada clique em "avançar" conduz a apresentação inteira: normal → 6 etapas do infarto → choque → stent → volta ao normal.
+- Atalhos: `→`/`Espaço`/`PgDn` avançar • `←`/`PgUp` voltar • `1`–`6` etapa • `N` normal • `D` desfibrilar • `S` stent • `A` automático • `M` som • `L` nomes • `E` elétrico • `R` girar • `F` tela cheia • `H` ajuda.
+- **Automático** (botão ⏯ ou tecla `A`): ciclo completo sem parar (repouso → exercício → infarto → choque → stent → recomeça), ótimo para deixar rodando no estande.
+- Aperte `F` para tela cheia. O som liga no primeiro clique ou tecla.
 
 ## Rodar no computador
 ```

@@ -120,7 +120,12 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 
 /* ---------- cena 3D ---------- */
 .stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
-.tools { position: absolute; top: 10px; right: 10px; display: flex; flex-direction: column; gap: 8px; z-index: 5; }
+.tools {
+  position: absolute; top: 10px; right: 10px; z-index: 5; gap: 8px;
+  display: grid; grid-auto-flow: column; grid-template-rows: repeat(8, auto); direction: rtl;
+}
+.tools > * { direction: ltr; }
+@media (max-height: 900px) { .tools { grid-template-rows: repeat(4, auto); } }
 .tool {
   width: 56px; height: 56px; border-radius: 14px; border: 1px solid var(--panel-border); cursor: pointer;
   background: rgba(20, 12, 22, 0.7); font-size: 20px; display: grid; place-items: center; line-height: 1;
@@ -232,3 +237,64 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
   .v-val { font-size: 32px; }
   .btn { padding: 0 12px; font-size: 14px; }
 }
+
+/* ---------- atalhos de teclado ---------- */
+.keys {
+  position: absolute; left: 12px; bottom: 12px; z-index: 6; display: none;
+  background: rgba(0,0,0,0.78); border: 1px solid var(--panel-border); border-radius: 12px;
+  padding: 10px 14px; font-size: 13px; line-height: 1.9; color: #e9dde1;
+}
+.keys.show { display: block; }
+.keys b { display: block; margin-bottom: 2px; color: #fff; }
+kbd {
+  display: inline-block; min-width: 22px; padding: 0 6px; border-radius: 5px; text-align: center;
+  background: #2a2230; border: 1px solid #4a3e52; border-bottom-width: 2px; font: 600 12px ui-monospace, Menlo, monospace; color: #fff;
+}
+
+/* ================================================================
+   MODO PROJEÇÃO — para projetor/TV: letras grandes, alto contraste,
+   fundo preto (projetor não mostra degradês escuros direito).
+   Os tamanhos usam vw para ficarem iguais em 720p e 1080p.
+   ================================================================ */
+body.proj { background: #000; }
+body.proj .app {
+  grid-template-columns: minmax(300px, 27vw) 1fr minmax(290px, 25vw);
+  gap: 0.8vw; padding: 0.8vw 0.8vw 1.6vw;
+}
+body.proj .panel, body.proj .controls { background: rgba(14, 8, 16, 0.94); border-color: rgba(255,255,255,0.14); }
+body.proj .brand h1 { font-size: clamp(20px, 2vw, 40px); }
+body.proj .brand p { font-size: clamp(12px, 1vw, 20px); color: #d8c8cd; }
+body.proj .brand-icon { font-size: clamp(28px, 2.6vw, 52px); }
+body.proj .tab { font-size: clamp(14px, 1.25vw, 26px); padding: 0.6vw 1.4vw; }
+body.proj .info h2 { font-size: clamp(19px, 1.75vw, 36px); }
+body.proj .info p, body.proj .info li { font-size: clamp(14.5px, 1.2vw, 24px); color: #fff; line-height: 1.45; }
+body.proj .phases li b { font-size: clamp(15px, 1.25vw, 25px); }
+body.proj .phases li span { font-size: clamp(13px, 1.05vw, 21px); color: #e6d7dc; }
+body.proj .phases li.active { background: rgba(255, 77, 94, 0.3); border-color: #ff4d5e; border-width: 2px; }
+body.proj .legend { font-size: clamp(12px, 0.95vw, 19px); color: #ddd; }
+body.proj .tag, body.proj .stage-num { font-size: clamp(12px, 1vw, 20px); }
+body.proj .fact p { font-size: clamp(13px, 1.05vw, 21px) !important; }
+body.proj .fact b { font-size: clamp(11px, 0.85vw, 17px); }
+body.proj .phase-pill { font-size: clamp(14px, 1.4vw, 28px); padding: 0.5vw 1.1vw; }
+body.proj .label { font-size: clamp(13px, 1.1vw, 22px); }
+body.proj .label span { background: rgba(0,0,0,0.75); }
+body.proj .tool { width: clamp(46px, 3.4vw, 70px); height: clamp(46px, 3.4vw, 70px); font-size: clamp(17px, 1.4vw, 28px); }
+body.proj .tool span { font-size: clamp(9px, 0.62vw, 13px); }
+body.proj .trace-wrap { height: clamp(90px, 13vh, 190px); }
+body.proj .trace-wrap.small { height: clamp(52px, 7vh, 110px); }
+body.proj .trace-label { font-size: clamp(10px, 0.8vw, 16px); }
+body.proj .vital { width: clamp(90px, 7.5vw, 160px); }
+body.proj .v-lbl { font-size: clamp(11px, 0.9vw, 18px); }
+body.proj .v-val { font-size: clamp(38px, 3.7vw, 78px); }
+body.proj .vital.spo2 .v-val { font-size: clamp(30px, 2.9vw, 60px); }
+body.proj .vital.bp .v-val { font-size: clamp(28px, 2.6vw, 54px); }
+body.proj .rhythm { font-size: clamp(12px, 1vw, 20px); }
+body.proj .artery-head { font-size: clamp(12.5px, 1vw, 20px); }
+body.proj .artery canvas { height: clamp(110px, 16vh, 230px); }
+body.proj .btn { font-size: clamp(14px, 1.1vw, 22px); min-height: clamp(44px, 3.3vw, 64px); padding: 0 1vw; }
+body.proj .hr-ctrl { font-size: clamp(14px, 1.1vw, 22px); }
+body.proj .dot { width: clamp(12px, 0.9vw, 18px); height: clamp(12px, 0.9vw, 18px); }
+body.proj .shock-msg { font-size: clamp(26px, 2.6vw, 56px); }
+body.proj .keys { font-size: clamp(13px, 0.95vw, 19px); }
+body.proj .hint, body.proj .disclaimer { display: none; }
+@media (max-height: 800px) { body.proj .fact { display: none; } }

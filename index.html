@@ -86,12 +86,22 @@
         <button class="tool on" id="btnFlow" title="Fluxo nas coronárias">🩸<span>Fluxo</span></button>
         <button class="tool" id="btnRotate" title="Girar automaticamente">🔄<span>Girar</span></button>
         <button class="tool" id="btnReset" title="Centralizar">🎯<span>Centro</span></button>
-        <button class="tool" id="btnFull" title="Tela cheia">⛶<span>Tela</span></button>
+        <button class="tool" id="btnFull" title="Tela cheia (F)">⛶<span>Tela</span></button>
+        <button class="tool" id="btnProj" title="Modo projeção (P)">📽️<span>Projeção</span></button>
       </div>
       <div class="phase-pill" id="phasePill">Diástole</div>
       <div class="hint" id="hint">🔊 Toque para ativar o som • Arraste para girar • Pinça para zoom</div>
       <div class="flash" id="flash"></div>
       <div class="shock-msg" id="shockMsg"></div>
+      <div class="keys" id="keys">
+        <b>Atalhos (teclado ou passador de slides)</b>
+        <div><kbd>→</kbd> <kbd>Espaço</kbd> <kbd>PgDn</kbd> avançar</div>
+        <div><kbd>←</kbd> <kbd>PgUp</kbd> voltar</div>
+        <div><kbd>1</kbd>–<kbd>6</kbd> ir para etapa &nbsp; <kbd>N</kbd> batimento normal</div>
+        <div><kbd>D</kbd> desfibrilar &nbsp; <kbd>S</kbd> stent &nbsp; <kbd>A</kbd> automático (ciclo completo)</div>
+        <div><kbd>M</kbd> som &nbsp; <kbd>L</kbd> nomes &nbsp; <kbd>E</kbd> elétrico &nbsp; <kbd>R</kbd> girar</div>
+        <div><kbd>F</kbd> tela cheia &nbsp; <kbd>P</kbd> projeção &nbsp; <kbd>H</kbd> esconder ajuda</div>
+      </div>
     </main>
 
     <!-- Monitor -->
@@ -146,6 +156,7 @@
           <button class="btn" data-hr="150">🏃 Exercício</button>
         </div>
         <button class="btn" id="btnSlow">🐢 Câmera lenta</button>
+        <button class="btn auto-btn" id="btnAutoN">⏯ Automático</button>
       </div>
       <div class="attack-only row">
         <button class="btn" id="btnPrev">◀ Voltar</button>
@@ -153,7 +164,7 @@
         <button class="btn primary" id="btnNext">Próximo ▶</button>
         <button class="btn danger" id="btnDefib" disabled>⚡ Desfibrilar</button>
         <button class="btn good" id="btnStent" disabled>💉 Angioplastia com stent</button>
-        <button class="btn" id="btnAuto">⏯ Automático</button>
+        <button class="btn auto-btn" id="btnAuto">⏯ Automático</button>
         <button class="btn" id="btnRestart">↺ Reiniciar</button>
       </div>
     </footer>

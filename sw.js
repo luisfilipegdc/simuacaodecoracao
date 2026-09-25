@@ -1,6 +1,6 @@
 // Guarda o site no aparelho para funcionar sem internet na feira.
 // Troque a versão quando publicar mudanças.
-const CACHE = 'coracao3d-v2';
+const CACHE = 'coracao3d-v3';
 const FILES = [
   './', './index.html', './css/style.css', './manifest.webmanifest',
   './js/main.js', './js/heart.js', './js/shaders.js', './js/ecg.js', './js/artery.js', './js/audio.js', './js/stages.js',
